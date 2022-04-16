@@ -159,6 +159,7 @@ namespace ffright
             this.KeyPreview = true;
             this.Name = "Form1";
             this.Text = "FFRight";
+            this.TopMost = true;
             this.Load += new System.EventHandler(this.Form1_Load);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyUp);
             this.ResumeLayout(false);
