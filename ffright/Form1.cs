@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -27,7 +27,6 @@ namespace ffright
         private void button1_Click(object sender, EventArgs e)
         {
             Hide();
-            File.Delete(tbxOut.Text);
             var sb = new StringBuilder();
 
             var cmd = new Process();
