@@ -2,7 +2,7 @@
   "profiles": {
     "ffright": {
       "commandName": "Project",
-      "commandLineArgs": "C:\\Users\\blatoy\\Videos\\Captures\\Microsoft Visual Studio 2022-04-16 02-50-10.mp4"
+      "commandLineArgs": "\"C:\\Users\\Blatoy\\Videos\\Recordings\\2022-11\\2022-11-05_21-06-52 -ReplayBuffer.mp4\""
     }
   }
 }
