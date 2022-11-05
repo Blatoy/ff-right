@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -10,6 +10,7 @@ using System.Windows.Forms;
 using System.Diagnostics;
 using System.IO;
 using System.Collections.Specialized;
+using System.Threading;
 
 namespace ffright
 {
@@ -36,6 +37,22 @@ namespace ffright
             cmd.StartInfo.RedirectStandardInput = false;
 
             cmd.Exited += (object sender, System.EventArgs e) => {
+                StringCollection paths = new StringCollection();
+                paths.Add(Path.GetDirectoryName(tbxPath.Text) + "\\" + tbxOut.Text + ".mp4");
+                
+                Thread thread = new Thread(() => Clipboard.SetFileDropList(paths));
+                thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+                thread.Start();
+                thread.Join();
+
+                if (deleteOriginal.Checked)
+                {
+                    File.Delete(tbxPath.Text);
+                }
+                else
+                {
+                    File.Move(tbxPath.Text, tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")"));
+                }
                 Application.Exit();
             };
 
@@ -50,7 +67,7 @@ namespace ffright
                 Application.Exit();
             }
         }
-
+        
         private void Form1_Load(object sender, EventArgs e)
         {
             ((Form)sender).Location = new Point(Cursor.Position.X, Cursor.Position.Y);
@@ -60,7 +77,7 @@ namespace ffright
             string[] fileParams = { "\nAudioStream 1\n\n30\n\n20\n\n" };
             try
             {
-            string filePath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @".\\ffright-params.txt";
+                string filePath = Path.GetDirectoryName(Process.GetCurrentProcess().MainModule.FileName) + @".\\ffright-params.txt";
                 fileParams = File.ReadAllText(filePath).Replace("\r", "").Split("\n");
             }
             catch (Exception)
@@ -110,6 +127,7 @@ namespace ffright
             catch(Exception) { }
 
             updateCommandLine();
+            tbxOut.Focus();
         }
 
         private void tbxPath_TextChanged(object sender, EventArgs e)
