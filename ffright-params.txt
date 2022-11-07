@@ -1,0 +1,7 @@
+# Audio channel names
+All,Mumble,Game Only,Microphone,Desktop
+# Default CRF
+30
+# Default video time
+20
+# Extra options
