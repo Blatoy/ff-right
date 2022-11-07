@@ -34,7 +34,7 @@ namespace ffright
             this.label1 = new System.Windows.Forms.Label();
             this.tbxPath = new System.Windows.Forms.TextBox();
             this.tbxOut = new System.Windows.Forms.TextBox();
-            this.button1 = new System.Windows.Forms.Button();
+            this.btnConvert = new System.Windows.Forms.Button();
             this.tbxCommand = new System.Windows.Forms.TextBox();
             this.audioChannels = new System.Windows.Forms.CheckedListBox();
             this.tbxCRF = new System.Windows.Forms.TextBox();
@@ -89,16 +89,17 @@ namespace ffright
             this.tbxOut.Size = new System.Drawing.Size(184, 23);
             this.tbxOut.TabIndex = 0;
             this.tbxOut.TextChanged += new System.EventHandler(this.tbxPath_TextChanged);
+            this.tbxOut.Enter += new System.EventHandler(this.tbxOut_Enter);
             // 
-            // button1
+            // btnConvert
             // 
-            this.button1.Location = new System.Drawing.Point(1, 140);
-            this.button1.Name = "button1";
-            this.button1.Size = new System.Drawing.Size(288, 23);
-            this.button1.TabIndex = 9;
-            this.button1.Text = "Convert";
-            this.button1.UseVisualStyleBackColor = true;
-            this.button1.Click += new System.EventHandler(this.button1_Click);
+            this.btnConvert.Location = new System.Drawing.Point(1, 140);
+            this.btnConvert.Name = "btnConvert";
+            this.btnConvert.Size = new System.Drawing.Size(288, 23);
+            this.btnConvert.TabIndex = 9;
+            this.btnConvert.Text = "Convert";
+            this.btnConvert.UseVisualStyleBackColor = true;
+            this.btnConvert.Click += new System.EventHandler(this.button1_Click);
             // 
             // tbxCommand
             // 
@@ -164,7 +165,7 @@ namespace ffright
             // 
             // Form1
             // 
-            this.AcceptButton = this.button1;
+            this.AcceptButton = this.btnConvert;
             this.AutoScaleDimensions = new System.Drawing.SizeF(7F, 15F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoSize = true;
@@ -174,7 +175,7 @@ namespace ffright
             this.Controls.Add(this.audioChannels);
             this.Controls.Add(this.addExtraParams);
             this.Controls.Add(this.tbxCommand);
-            this.Controls.Add(this.button1);
+            this.Controls.Add(this.btnConvert);
             this.Controls.Add(this.tbxOut);
             this.Controls.Add(this.tbxPath);
             this.Controls.Add(this.tbxCRF);
@@ -186,7 +187,6 @@ namespace ffright
             this.KeyPreview = true;
             this.Name = "Form1";
             this.Text = "FFRight";
-            this.TopMost = true;
             this.Load += new System.EventHandler(this.Form1_Load);
             this.KeyUp += new System.Windows.Forms.KeyEventHandler(this.Form1_KeyUp);
             this.ResumeLayout(false);
@@ -201,7 +201,7 @@ namespace ffright
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.TextBox tbxPath;
         private System.Windows.Forms.TextBox tbxOut;
-        private System.Windows.Forms.Button button1;
+        private System.Windows.Forms.Button btnConvert;
         private System.Windows.Forms.TextBox tbxCommand;
         private System.Windows.Forms.CheckedListBox audioChannels;
         private System.Windows.Forms.TextBox tbxCRF;

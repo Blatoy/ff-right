@@ -41,7 +41,7 @@ namespace ffright
                 paths.Add(Path.GetDirectoryName(tbxPath.Text) + "\\" + tbxOut.Text + ".mp4");
                 
                 Thread thread = new Thread(() => Clipboard.SetFileDropList(paths));
-                thread.SetApartmentState(ApartmentState.STA); //Set the thread to STA
+                thread.SetApartmentState(ApartmentState.STA);
                 thread.Start();
                 thread.Join();
 
@@ -137,6 +137,8 @@ namespace ffright
 
         void updateCommandLine()
         {
+            btnConvert.Enabled = tbxOut.Text.Length > 0;
+
             string map = "";
             foreach(var index in audioChannels.CheckedIndices)
             {
@@ -166,6 +168,11 @@ namespace ffright
         private void audioChannels_KeyUp(object sender, KeyEventArgs e)
         {
             updateCommandLine();
+        }
+
+        private void tbxOut_Enter(object sender, EventArgs e)
+        {
+            TopMost = true;
         }
     }
 }
