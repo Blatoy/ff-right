@@ -14,18 +14,26 @@ using System.Threading;
 
 namespace ffright
 {
-    public partial class Form1 : Form
+    public partial class FormConvertVideos : Form
     {
         string extraParams = "";
-
-        public Form1()
+        string toBeContinuedImage = "";
+        string toBeContinuedAudio = "";
+        string textFontPath = "";
+        DateTime fileCreationDate;
+        public FormConvertVideos()
         {
             InitializeComponent();
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void btnConvertClick(object sender, EventArgs e)
+
         {
-            Hide();
+            if (!keepOpen.Checked)
+            {
+                Hide();
+            }
+
             var sb = new StringBuilder();
 
             var cmd = new Process();
@@ -52,15 +60,20 @@ namespace ffright
                 else
                 {
                     File.Move(tbxPath.Text, tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")"));
+                    tbxPath.Text = tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")");
                 }
-                Application.Exit();
+
+                if (!keepOpen.Checked)
+                {
+                    Application.Exit();
+                }
             };
 
             cmd.Start();
 
         }
 
-        private void Form1_KeyUp(object sender, KeyEventArgs e)
+        private void OnKeyUp(object sender, KeyEventArgs e)
         {
             if (e.KeyCode == Keys.Escape)
             {
@@ -68,8 +81,10 @@ namespace ffright
             }
         }
         
-        private void Form1_Load(object sender, EventArgs e)
+        private void OnLoad(object sender, EventArgs e)
         {
+            extraEffects.SelectedIndex = 0;
+
             ((Form)sender).Location = new Point(Cursor.Position.X, Cursor.Position.Y);
 
             // Parse "config"
@@ -95,6 +110,9 @@ namespace ffright
 
             tbxCRF.Text = fileParams[3];
             extraParams = fileParams[7];
+            toBeContinuedImage = fileParams[9];
+            toBeContinuedAudio = fileParams[10];
+            textFontPath = fileParams[12];
 
             int defaultDuration = int.Parse(fileParams[5]);
 
@@ -104,6 +122,7 @@ namespace ffright
                 if (Environment.GetCommandLineArgs().Length > 0)
                 {
                     tbxPath.Text = Environment.GetCommandLineArgs()[1];
+                    fileCreationDate = File.GetCreationTime(tbxPath.Text);
 
                     // Query time of video for auto end and start time
                     var cmd = new Process();
@@ -119,60 +138,129 @@ namespace ffright
 
                     string videoLengthNoMs = output.Split(".")[0];
                     var videoLength = videoLengthNoMs.Split(":"); // 0 = h, 1 = m, 2 = s
+                    int seconds = int.Parse(videoLength[2]) - defaultDuration;
+                    int minutes = int.Parse(videoLength[1]);
+                    if (seconds < 0) { seconds += 60; minutes -= 1; }
+                    if (minutes < 0) { seconds = 0; minutes = 0; }
 
                     tbxEnd.Text = (videoLength[0] == "0" ? "" : videoLength + ":") + videoLength[1] + ":" + videoLength[2];
-                    tbxStart.Text = videoLength[1] + ":" + (int.Parse(videoLength[2]) - defaultDuration);
+                    tbxStart.Text = minutes + ":" + seconds;
                 }
             }
             catch(Exception) { }
 
-            updateCommandLine();
+            UpdateCommandLine();
             tbxOut.Focus();
         }
 
-        private void tbxPath_TextChanged(object sender, EventArgs e)
+        private void OnPathChanged(object sender, EventArgs e)
         {
-            updateCommandLine();
+            UpdateCommandLine();
         }
 
-        void updateCommandLine()
+        private void parseTime(string time, out float s, out float m)
+        {
+            var videoLength = time.Split(":");
+            m = float.Parse(videoLength[0]);
+            s = float.Parse(videoLength[1]);
+        }
+
+        void UpdateCommandLine()
         {
             btnConvert.Enabled = tbxOut.Text.Length > 0;
 
-            string map = "";
+            string filterComplexMap = "";
+
             foreach(var index in audioChannels.CheckedIndices)
             {
-                map += "-map 0:a:" + index + " ";
+                filterComplexMap += "[0:a:" + index + "]";
             }
+
+            filterComplexMap += "amix=" + audioChannels.CheckedIndices.Count + ":longest";
+
+            string nameOverlay = $"";
+            if (!chkHideOverlay.Checked)
+            {
+                float ss = 0, sm = 0;
+                try
+                {
+                    parseTime(tbxStart.Text, out ss, out sm);
+                } catch (Exception e) { }
+
+                int frameIndex = (int)(sm * 60 + ss);
+                string creationDate = "";
+                if (fileCreationDate != null)
+                {
+                    creationDate = fileCreationDate.ToString("dd.MM.yyyy HH\\\\:mm");
+                }
+
+                string textFontSanitized = textFontPath.Replace(":", "\\\\:");
+                nameOverlay += $";drawtext=fontfile={textFontSanitized}:text='{tbxOut.Text}':fontcolor=white:fontsize=64:box=1:boxcolor=black@0.7:boxborderw=15:x=(w-text_w)/2:y=200:enable='between(t,{frameIndex},{frameIndex})',drawtext=fontfile={textFontSanitized}:text='{creationDate}':fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=(h - 300):enable='between(t,{frameIndex},{frameIndex})'";
+            }
+
             tbxCommand.Text = $"ffmpeg.exe -y -i \"{tbxPath.Text}\" " +
-                              $"-ss {tbxStart.Text} -to {tbxEnd.Text} -crf {tbxCRF.Text} " +
-                              $"-map 0:v:0 {map}" +
-                              $"{(addExtraParams.Checked ? extraParams : "")} \"{tbxOut.Text}.mp4\"";
+                            $"-ss {tbxStart.Text} -to {tbxEnd.Text} -crf {tbxCRF.Text} " +
+                            $"-filter_complex \"{filterComplexMap}{nameOverlay}\" " +
+                            $"{(addExtraParams.Checked ? extraParams : "")} \"{tbxOut.Text}.mp4\"";
+
+            if (extraEffects.SelectedIndex == 1)
+            {
+                string zoom = "1.05";
+                float ss = 0, sm = 0, es = 0, em = 0; 
+                try
+                {
+                    parseTime(tbxStart.Text, out ss, out sm);
+                    parseTime(tbxEnd.Text, out es, out em);
+                }
+                catch (Exception e)
+                {
+                    
+                }
+
+                float durationM = em - sm;
+                float durationS = es - ss;
+                if (durationS < 0)
+                {
+                    durationS += 60;
+                    durationM -= 1;
+                }
+
+                float endSeconds = durationM * 60 + durationS;
+
+                tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}.mp4\" -vf tpad=stop_mode=clone:stop_duration=3 \"{tbxOut.Text}_tmp.mp4\"";
+                tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}_tmp.mp4\"  -i \"{toBeContinuedImage}\" -filter_complex \"[0:v] zoompan=z='if(between(in_time,{endSeconds},{endSeconds + 4}),{zoom},1)':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30, hue=s=0:enable='between(t,{endSeconds},{endSeconds + 4})'[b]; [b][1:v] overlay=0:0:enable='between(t,{endSeconds},{endSeconds + 4})\" -itsoffset 00:{durationM}:{durationS} -i \"{toBeContinuedAudio}\" -map 0 -map 1:0 -filter_complex \"amix=inputs=2\" -async 1 \"{tbxOut.Text}.mp4\"";
+                tbxCommand.Text += $" & del \"{tbxOut.Text}_tmp.mp4\"";
+            }
         }
 
         private void audioChannels_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            updateCommandLine();
+            UpdateCommandLine();
         }
 
         private void audioChannels_SelectedIndexChanged(object sender, EventArgs e)
         {
-            updateCommandLine();
+            UpdateCommandLine();
         }
 
         private void audioChannels_MouseUp(object sender, MouseEventArgs e)
         {
-            updateCommandLine();
+            UpdateCommandLine();
         }
 
         private void audioChannels_KeyUp(object sender, KeyEventArgs e)
         {
-            updateCommandLine();
+            UpdateCommandLine();
         }
 
         private void tbxOut_Enter(object sender, EventArgs e)
         {
             TopMost = true;
+        }
+
+        private void chkHideOverlay_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateCommandLine();
         }
     }
 }
