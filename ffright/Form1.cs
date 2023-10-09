@@ -34,6 +34,8 @@ namespace ffright
         string toBeContinuedAudio = "";
         string textFontPath = "";
         DateTime fileCreationDate;
+        Process viewerProcess;
+
         public FormConvertVideos()
         {
             InitializeComponent();
@@ -192,7 +194,16 @@ namespace ffright
             s = float.Parse(videoLength[1]);
         }
 
-        void UpdateCommandLine()
+        private void AddSecondsToTime(ref string time, float seconds)
+        {
+            parseTime(time, out float s, out float m);
+            s += seconds;
+            m += MathF.Floor(s / 60);
+            s %= 60;
+            if (s < 0) s += 60;
+            time = m + ":" + s;
+        }
+
         {
             btnConvert.Enabled = tbxOut.Text.Length > 0;
 
@@ -312,6 +323,31 @@ namespace ffright
         }
 
         private void chkHideOverlay_CheckedChanged(object sender, EventArgs e)
+        private void tbxStart_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
+        {
+            TextBox box = (TextBox)sender;
+            string time = box.Text;
+
+            int seconds = 1;
+
+            if (e.Control) seconds = 5;
+            if (e.Alt) seconds = 30;
+
+            switch (e.KeyCode)
+            {
+                case Keys.Up:
+                    AddSecondsToTime(ref time, seconds);
+                    break;
+                case Keys.Down:
+                    AddSecondsToTime(ref time, -seconds);
+                    break;
+                default:
+                    return;
+            }
+
+            box.Text = time;
+            box.SelectionStart = time.Length;
+        }
         private void FormConvertVideos_FormClosing(object sender, FormClosingEventArgs e)
         {
             KillViewer();
