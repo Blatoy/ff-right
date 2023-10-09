@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -11,6 +11,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Collections.Specialized;
 using System.Threading;
+using System.Runtime.InteropServices;
 
 namespace ffright
 {
@@ -27,12 +28,16 @@ namespace ffright
         static extern bool SetFocus(IntPtr hWnd);
         [DllImport("user32.dll")]
         static extern bool SetParent(IntPtr hWnd, IntPtr newParent);
+
+        DiceUI diceUI = null;
+
         volatile bool needToStealFocus = false;
 
         string extraParams = "";
         string toBeContinuedImage = "";
         string toBeContinuedAudio = "";
         string textFontPath = "";
+        string memeFolder = "";
         DateTime fileCreationDate;
         Process viewerProcess;
 
@@ -51,6 +56,10 @@ namespace ffright
             if (!keepOpen.Checked)
             {
                 Hide();
+                if (diceUI != null)
+                {
+                    diceUI.Hide();
+                }
             }
 
             var sb = new StringBuilder();
@@ -142,6 +151,7 @@ namespace ffright
             toBeContinuedImage = fileParams[9];
             toBeContinuedAudio = fileParams[10];
             textFontPath = fileParams[12];
+            memeFolder = fileParams[14];
 
             int defaultDuration = int.Parse(fileParams[5]);
 
@@ -204,12 +214,13 @@ namespace ffright
             time = m + ":" + s;
         }
 
+        void UpdateCommandLine(bool restartPlayer = true)
         {
             btnConvert.Enabled = tbxOut.Text.Length > 0;
 
             string filterComplexMap = "";
 
-            foreach(var index in audioChannels.CheckedIndices)
+            foreach (var index in audioChannels.CheckedIndices)
             {
                 filterComplexMap += "[0:a:" + index + "]";
             }
@@ -217,14 +228,16 @@ namespace ffright
             filterComplexMap += "amix=" + audioChannels.CheckedIndices.Count + ":longest";
 
             string nameOverlay = $"";
+
+            float ss = 0, sm = 0;
+            try
+            {
+                parseTime(tbxStart.Text, out ss, out sm);
+            }
+            catch (Exception e) { }
+
             if (!chkHideOverlay.Checked)
             {
-                float ss = 0, sm = 0;
-                try
-                {
-                    parseTime(tbxStart.Text, out ss, out sm);
-                } catch (Exception e) { }
-
                 int frameIndex = (int)(sm * 60 + ss);
                 string creationDate = "";
                 if (fileCreationDate != null)
@@ -232,39 +245,73 @@ namespace ffright
                     creationDate = fileCreationDate.ToString("dd.MM.yyyy HH\\\\:mm");
                 }
 
-                string textFontSanitized = textFontPath.Replace(":", "\\\\:");
-                nameOverlay += $";drawtext=fontfile={textFontSanitized}:text='{tbxOut.Text}':fontcolor=white:fontsize=64:box=1:boxcolor=black@0.7:boxborderw=15:x=(w-text_w)/2:y=200:enable='between(t,{frameIndex},{frameIndex})',drawtext=fontfile={textFontSanitized}:text='{creationDate}':fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=(h - 300):enable='between(t,{frameIndex},{frameIndex})'";
+                nameOverlay += $";drawtext=fontfile='{textFontPath}':text='{tbxOut.Text}':fontcolor=white:fontsize=64:box=1:boxcolor=black@0.7:boxborderw=15:x=(w-text_w)/2:y=200:enable='between(t,{frameIndex},{frameIndex})',drawtext=fontfile='{textFontPath}':text='{creationDate}':fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=(h - 300):enable='between(t,{frameIndex},{frameIndex})'";
             }
 
             tbxCommand.Text = $"ffmpeg.exe -y -i \"{tbxPath.Text}\" " +
                             $"-ss {tbxStart.Text} -to {tbxEnd.Text} -crf {tbxCRF.Text} " +
                             $"-filter_complex \"{filterComplexMap}{nameOverlay}\" " +
-                            $"{(addExtraParams.Checked ? extraParams : "")} \"{tbxOut.Text}.mp4\"";
+                            $"{(addExtraParams.Checked ? extraParams : "")} \"{tbxOut.Text + (extraEffects.SelectedIndex == 2 ? "_tmp" : "")}.mp4\"";
 
-            if (extraEffects.SelectedIndex == 1)
+            float es = 0, em = 0;
+            try
             {
-                string zoom = "1.05";
-                float ss = 0, sm = 0, es = 0, em = 0; 
-                try
-                {
-                    parseTime(tbxStart.Text, out ss, out sm);
-                    parseTime(tbxEnd.Text, out es, out em);
-                }
-                catch (Exception e)
-                {
-                    
-                }
+                parseTime(tbxEnd.Text, out es, out em);
+            }
+            catch (Exception) { }
 
-                float durationM = em - sm;
-                float durationS = es - ss;
-                if (durationS < 0)
-                {
-                    durationS += 60;
-                    durationM -= 1;
-                }
+            float durationM = em - sm;
+            float durationS = es - ss;
 
-                float endSeconds = durationM * 60 + durationS;
+            if (durationS < 0)
+            {
+                durationS += 60;
+                durationM -= 1;
+            }
 
+            float endSeconds = durationM * 60 + durationS;
+
+            switch (extraEffects.SelectedIndex)
+            {
+                case 1:
+                    // to be continued
+                    string zoom = "1.05";
+
+                    tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}.mp4\" -vf tpad=stop_mode=clone:stop_duration=3 \"{tbxOut.Text}_tmp.mp4\"";
+                    tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}_tmp.mp4\"  -i \"{toBeContinuedImage}\" -filter_complex \"[0:v] zoompan=z='if(between(in_time,{endSeconds},{endSeconds + 4}),{zoom},1)':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30, hue=s=0:enable='between(t,{endSeconds},{endSeconds + 4})'[b]; [b][1:v] overlay=0:0:enable='between(t,{endSeconds},{endSeconds + 4})\" -itsoffset 00:{durationM}:{durationS} -i \"{toBeContinuedAudio}\" -map 0 -map 1:0 -filter_complex \"amix=inputs=2\" -async 1 \"{tbxOut.Text}.mp4\"";
+                    tbxCommand.Text += $" & del \"{tbxOut.Text}_tmp.mp4\"";
+                    break;
+                case 2:
+                    {
+                        var effectDuration = 5;
+
+                        parseTime(diceUI.startTime.Text, out float diceStartSeconds, out float diceStartMinutes);
+                        var cutStartSeconds = diceStartSeconds - ss;
+                        var cutStartMinutes = diceStartMinutes - sm;
+
+                        if (cutStartSeconds < 0)
+                        {
+                            cutStartSeconds += 1;
+                            cutStartMinutes -= 1;
+                        }
+
+                        float startSeconds = 60 * cutStartMinutes + cutStartSeconds;
+                        var rollType = "success";
+                        var textType = "Success\\:";
+                        if (diceUI.failure.Checked)
+                        {
+                            rollType = "failure";
+                            textType = "Failure\\:";
+                        }
+
+                        var mathThing = $"100 + max(0\\, 200 - 900 * sqrt((t - {startSeconds}) / {effectDuration}))";
+
+                        tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}_tmp.mp4\" -itsoffset {startSeconds} -async 1 -i \"{memeFolder}roll-{rollType}.wav\" -i \"{memeFolder}roll-{rollType}.png\" -filter_complex \"[0:a:0][1:a:0]amix=2;drawtext=fontfile='{memeFolder.Replace("\\", "\\\\").Replace(":", "\\:")}12-post-antiqua-roman-05554.ttf':text='{textType} {diceUI.diceMessage.Text}':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.95:boxborderw=12:x=50 + {mathThing}:y=70+12:enable='between(t,{startSeconds},{startSeconds + effectDuration})'[out];[out][2:v]overlay=enable='between=(t,{startSeconds},{startSeconds + effectDuration})':x={mathThing}:y=70\" \"{tbxOut.Text}.mp4\"";
+                        tbxCommand.Text += $" & del \"{tbxOut.Text}_tmp.mp4\"";
+                    }
+
+                    break;
+            }
 
             // Display viewer
             if (restartPlayer)
@@ -288,6 +335,7 @@ namespace ffright
                 SetParent(viewerProcess.Handle, Handle);
             }
 
+        }
 
         void KillViewer()
         {
@@ -299,22 +347,22 @@ namespace ffright
 
         private void audioChannels_ItemCheck(object sender, ItemCheckEventArgs e)
         {
-            UpdateCommandLine();
+            UpdateCommandLine(false);
         }
 
         private void audioChannels_SelectedIndexChanged(object sender, EventArgs e)
         {
-            UpdateCommandLine();
+            UpdateCommandLine(false);
         }
 
         private void audioChannels_MouseUp(object sender, MouseEventArgs e)
         {
-            UpdateCommandLine();
+            UpdateCommandLine(false);
         }
 
         private void audioChannels_KeyUp(object sender, KeyEventArgs e)
         {
-            UpdateCommandLine();
+            UpdateCommandLine(false);
         }
 
         private void tbxOut_Enter(object sender, EventArgs e)
@@ -323,6 +371,10 @@ namespace ffright
         }
 
         private void chkHideOverlay_CheckedChanged(object sender, EventArgs e)
+        {
+            UpdateCommandLine(false);
+        }
+
         private void tbxStart_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
             TextBox box = (TextBox)sender;
@@ -348,6 +400,49 @@ namespace ffright
             box.Text = time;
             box.SelectionStart = time.Length;
         }
+
+        private void MoveWindowsStart()
+        {
+            if (diceUI != null)
+            {
+                diceUI.Hide();
+            }
+        }
+
+        private void MoveWindowsEnd()
+        {
+            if (diceUI != null)
+            {
+                diceUI.Show();
+                diceUI.Top = Bottom - diceUI.Height;
+                diceUI.Left = Left - diceUI.Width;
+            }
+        }
+
+        private void extraEffects_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            switch (((ComboBox)sender).SelectedIndex)
+            {
+                case 2:
+                    diceUI = new DiceUI();
+                    MoveWindowsEnd();
+
+                    diceUI.diceMessage.Focus();
+                    diceUI.startTime.Text = tbxStart.Text;
+
+                    break;
+                default:
+                    if (diceUI != null)
+                    {
+                        diceUI.Hide();
+                        diceUI = null;
+                    }
+                    break;
+            }
+
+            OnPathChanged(sender, e);
+        }
+
         private void FormConvertVideos_FormClosing(object sender, FormClosingEventArgs e)
         {
             KillViewer();
@@ -356,10 +451,14 @@ namespace ffright
         private void FormConvertVideos_Move(object sender, EventArgs e)
         {
             KillViewer();
+            MoveWindowsStart();
         }
 
+        private void FormConvertVideos_ResizeEnd(object sender, EventArgs e)
         {
             UpdateCommandLine();
+            MoveWindowsEnd();
+        }
 
         private void FormConvertVideos_Deactivate(object sender, EventArgs e)
         {
@@ -375,6 +474,14 @@ namespace ffright
             }
         }
 
+        private void FormConvertVideos_Enter(object sender, EventArgs e)
+        {
+            UpdateCommandLine(false);
+        }
+
+        private void FormConvertVideos_Activated(object sender, EventArgs e)
+        {
+            UpdateCommandLine(false);
         }
     }
 }
