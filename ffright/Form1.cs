@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -16,6 +16,19 @@ namespace ffright
 {
     public partial class FormConvertVideos : Form
     {
+
+        [DllImport("User32")]
+        private static extern int SetForegroundWindow(IntPtr hwnd);
+        [DllImportAttribute("User32.DLL")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        [DllImport("user32.dll")]
+        static extern bool SetActiveWindow(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        static extern bool SetFocus(IntPtr hWnd);
+        [DllImport("user32.dll")]
+        static extern bool SetParent(IntPtr hWnd, IntPtr newParent);
+        volatile bool needToStealFocus = false;
+
         string extraParams = "";
         string toBeContinuedImage = "";
         string toBeContinuedAudio = "";
@@ -24,6 +37,10 @@ namespace ffright
         public FormConvertVideos()
         {
             InitializeComponent();
+            Application.ApplicationExit += (a, e) =>
+            {
+                KillViewer();
+            };
         }
 
         private void btnConvertClick(object sender, EventArgs e)
@@ -44,10 +61,11 @@ namespace ffright
             cmd.StartInfo.CreateNoWindow = false;
             cmd.StartInfo.RedirectStandardInput = false;
 
-            cmd.Exited += (object sender, System.EventArgs e) => {
+            cmd.Exited += (object sender, System.EventArgs e) =>
+            {
                 StringCollection paths = new StringCollection();
                 paths.Add(Path.GetDirectoryName(tbxPath.Text) + "\\" + tbxOut.Text + ".mp4");
-                
+
                 Thread thread = new Thread(() => Clipboard.SetFileDropList(paths));
                 thread.SetApartmentState(ApartmentState.STA);
                 thread.Start();
@@ -59,8 +77,15 @@ namespace ffright
                 }
                 else
                 {
-                    File.Move(tbxPath.Text, tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")"));
-                    tbxPath.Text = tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")");
+                    try
+                    {
+                        File.Move(tbxPath.Text, tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")"));
+                        tbxPath.Text = tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")");
+                    }
+                    catch (Exception exception)
+                    {
+
+                    }
                 }
 
                 if (!keepOpen.Checked)
@@ -71,6 +96,8 @@ namespace ffright
 
             cmd.Start();
 
+            KillViewer();
+
         }
 
         private void OnKeyUp(object sender, KeyEventArgs e)
@@ -80,7 +107,7 @@ namespace ffright
                 Application.Exit();
             }
         }
-        
+
         private void OnLoad(object sender, EventArgs e)
         {
             extraEffects.SelectedIndex = 0;
@@ -147,7 +174,7 @@ namespace ffright
                     tbxStart.Text = minutes + ":" + seconds;
                 }
             }
-            catch(Exception) { }
+            catch (Exception) { }
 
             UpdateCommandLine();
             tbxOut.Focus();
@@ -227,9 +254,35 @@ namespace ffright
 
                 float endSeconds = durationM * 60 + durationS;
 
-                tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}.mp4\" -vf tpad=stop_mode=clone:stop_duration=3 \"{tbxOut.Text}_tmp.mp4\"";
-                tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}_tmp.mp4\"  -i \"{toBeContinuedImage}\" -filter_complex \"[0:v] zoompan=z='if(between(in_time,{endSeconds},{endSeconds + 4}),{zoom},1)':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30, hue=s=0:enable='between(t,{endSeconds},{endSeconds + 4})'[b]; [b][1:v] overlay=0:0:enable='between(t,{endSeconds},{endSeconds + 4})\" -itsoffset 00:{durationM}:{durationS} -i \"{toBeContinuedAudio}\" -map 0 -map 1:0 -filter_complex \"amix=inputs=2\" -async 1 \"{tbxOut.Text}.mp4\"";
-                tbxCommand.Text += $" & del \"{tbxOut.Text}_tmp.mp4\"";
+
+            // Display viewer
+            if (restartPlayer)
+            {
+                KillViewer();
+
+                viewerProcess = new Process();
+
+                viewerProcess.StartInfo.CreateNoWindow = true;
+                viewerProcess.StartInfo.UseShellExecute = false;
+                viewerProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+                viewerProcess.StartInfo.FileName = "ffplay.exe";
+                // -ss 00:14 -t 1
+                var width = Math.Round(Height * (16d / 9d));
+
+                viewerProcess.StartInfo.Arguments = $"-vf \"drawtext=text='%{{pts\\:hms}}':box=1:x=(w-text_w)/2:y=25:fontsize=148\" -alwaysontop -top {Top} -left {Right} -x {width} -y {Height} -noborder -volume 5 -loop 0 -ss {tbxStart.Text} -t {durationS + 1} -i \"{tbxPath.Text}\"";
+                Debug.WriteLine(viewerProcess.StartInfo.Arguments);
+
+                viewerProcess.Start();
+                needToStealFocus = true;
+                SetParent(viewerProcess.Handle, Handle);
+            }
+
+
+        void KillViewer()
+        {
+            if (viewerProcess != null && !viewerProcess.HasExited)
+            {
+                viewerProcess.Kill();
             }
         }
 
@@ -259,8 +312,33 @@ namespace ffright
         }
 
         private void chkHideOverlay_CheckedChanged(object sender, EventArgs e)
+        private void FormConvertVideos_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            KillViewer();
+        }
+
+        private void FormConvertVideos_Move(object sender, EventArgs e)
+        {
+            KillViewer();
+        }
+
         {
             UpdateCommandLine();
+
+        private void FormConvertVideos_Deactivate(object sender, EventArgs e)
+        {
+            if (needToStealFocus)
+            {
+                Task.Run(() =>
+                {
+                    var myWindowHandler = Process.GetCurrentProcess().MainWindowHandle;
+                    ShowWindow(myWindowHandler, 5);
+                    SetForegroundWindow(myWindowHandler);
+                    needToStealFocus = false;
+                });
+            }
+        }
+
         }
     }
 }
