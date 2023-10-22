@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -213,6 +213,10 @@ namespace ffright
             if (s < 0) s += 60;
             time = m + ":" + s;
         }
+        private void UpdateCommandLineWithoutRestartingPlayer(object sender, EventArgs e)
+        {
+            UpdateCommandLine(false);
+        }
 
         void UpdateCommandLine(bool restartPlayer = true)
         {
@@ -314,7 +318,7 @@ namespace ffright
             }
 
             // Display viewer
-            if (restartPlayer)
+            if (restartPlayer && chkPreview.Checked)
             {
                 KillViewer();
 
@@ -379,7 +383,12 @@ namespace ffright
 
         private void tbxStart_PreviewKeyDown(object sender, PreviewKeyDownEventArgs e)
         {
+
             TextBox box = (TextBox)sender;
+            if (box.Name == "tbxOut")
+            {
+                box = tbxStart;
+            }
             string time = box.Text;
 
             int seconds = 1;
@@ -484,6 +493,18 @@ namespace ffright
         private void FormConvertVideos_Activated(object sender, EventArgs e)
         {
             UpdateCommandLine(false);
+        }
+
+        private void chkPreview_CheckedChanged(object sender, EventArgs e)
+        {
+            if (chkPreview.Checked)
+            {
+                UpdateCommandLine();
+            }
+            else
+            {
+                KillViewer();
+            }
         }
     }
 }

@@ -45,6 +45,7 @@ namespace ffright
             extraEffects = new System.Windows.Forms.ComboBox();
             keepOpen = new System.Windows.Forms.CheckBox();
             chkHideOverlay = new System.Windows.Forms.CheckBox();
+            chkPreview = new System.Windows.Forms.CheckBox();
             SuspendLayout();
             // 
             // tbxStart
@@ -83,7 +84,7 @@ namespace ffright
             tbxPath.Location = new System.Drawing.Point(1, 2);
             tbxPath.Name = "tbxPath";
             tbxPath.PlaceholderText = "Path";
-            tbxPath.Size = new System.Drawing.Size(288, 23);
+            tbxPath.Size = new System.Drawing.Size(212, 23);
             tbxPath.TabIndex = 7;
             tbxPath.TextChanged += OnPathChanged;
             // 
@@ -94,8 +95,9 @@ namespace ffright
             tbxOut.PlaceholderText = "Clip name";
             tbxOut.Size = new System.Drawing.Size(184, 23);
             tbxOut.TabIndex = 0;
-            tbxOut.TextChanged += OnPathChanged;
+            tbxOut.TextChanged += UpdateCommandLineWithoutRestartingPlayer;
             tbxOut.Enter += tbxOut_Enter;
+            tbxOut.PreviewKeyDown += tbxStart_PreviewKeyDown;
             // 
             // btnConvert
             // 
@@ -136,7 +138,7 @@ namespace ffright
             tbxCRF.Size = new System.Drawing.Size(43, 23);
             tbxCRF.TabIndex = 3;
             tbxCRF.Text = "30";
-            tbxCRF.TextChanged += OnPathChanged;
+            tbxCRF.TextChanged += UpdateCommandLineWithoutRestartingPlayer;
             // 
             // label2
             // 
@@ -202,6 +204,19 @@ namespace ffright
             chkHideOverlay.UseVisualStyleBackColor = true;
             chkHideOverlay.CheckedChanged += chkHideOverlay_CheckedChanged;
             // 
+            // chkPreview
+            // 
+            chkPreview.AutoSize = true;
+            chkPreview.Checked = true;
+            chkPreview.CheckState = System.Windows.Forms.CheckState.Checked;
+            chkPreview.Location = new System.Drawing.Point(222, 4);
+            chkPreview.Name = "chkPreview";
+            chkPreview.Size = new System.Drawing.Size(67, 19);
+            chkPreview.TabIndex = 15;
+            chkPreview.Text = "Preview";
+            chkPreview.UseVisualStyleBackColor = true;
+            chkPreview.CheckedChanged += chkPreview_CheckedChanged;
+            // 
             // FormConvertVideos
             // 
             AcceptButton = btnConvert;
@@ -210,6 +225,7 @@ namespace ffright
             AutoSize = true;
             AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             ClientSize = new System.Drawing.Size(626, 227);
+            Controls.Add(chkPreview);
             Controls.Add(chkHideOverlay);
             Controls.Add(keepOpen);
             Controls.Add(extraEffects);
@@ -260,6 +276,7 @@ namespace ffright
         private System.Windows.Forms.ComboBox extraEffects;
         private System.Windows.Forms.CheckBox keepOpen;
         private System.Windows.Forms.CheckBox chkHideOverlay;
+        private System.Windows.Forms.CheckBox chkPreview;
     }
 }
 
