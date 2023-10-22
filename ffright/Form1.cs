@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -325,9 +325,11 @@ namespace ffright
                 viewerProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 viewerProcess.StartInfo.FileName = "ffplay.exe";
                 // -ss 00:14 -t 1
-                var width = Math.Round(Height * (16d / 9d));
+                var height = Height * 2;
+                var width = Math.Round(height * (16d / 9d));
+                var top = Top - height / 4;
 
-                viewerProcess.StartInfo.Arguments = $"-vf \"drawtext=text='%{{pts\\:hms}}':box=1:x=(w-text_w)/2:y=25:fontsize=148\" -alwaysontop -top {Top} -left {Right} -x {width} -y {Height} -noborder -volume 5 -loop 0 -ss {tbxStart.Text} -t {durationS + 1} -i \"{tbxPath.Text}\"";
+                viewerProcess.StartInfo.Arguments = $"-vf \"drawtext=text='%{{pts\\:hms}}':box=1:x=(w-text_w)/2:y=25:fontsize=80\" -alwaysontop -top {top} -left {Right} -x {width} -y {height} -noborder -volume 5 -loop 0 -ss {tbxStart.Text} -t {durationS + 1 + durationM * 60} -i \"{tbxPath.Text}\"";
                 Debug.WriteLine(viewerProcess.StartInfo.Arguments);
 
                 viewerProcess.Start();
