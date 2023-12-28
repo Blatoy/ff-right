@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -252,9 +252,22 @@ namespace ffright
                 nameOverlay += $";drawtext=fontfile='{textFontPath}':text='{tbxOut.Text}':fontcolor=white:fontsize=64:box=1:boxcolor=black@0.7:boxborderw=15:x=(w-text_w)/2:y=200:enable='between(t,{frameIndex},{frameIndex})',drawtext=fontfile='{textFontPath}':text='{creationDate}':fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=(h - 300):enable='between(t,{frameIndex},{frameIndex})'";
             }
 
+            // TODO: Save in config
+            const double SCREEN_HEIGHT = 1440;
+            const double RECORDING_WIDTH = 3360;
+
+            // TODO: Add option to hide that
+            double.TryParse(tbxCrop1.Text, out double ratio1);
+            double.TryParse(tbxCrop2.Text, out double ratio2);
+
+            double ratio = ratio1 / ratio2;
+            double screenWidth = SCREEN_HEIGHT * ratio;
+
+            string cropText = $",crop={screenWidth}:{SCREEN_HEIGHT}:{(int)((RECORDING_WIDTH - screenWidth) / 2)}:0";
+
             tbxCommand.Text = $"ffmpeg.exe -y -i \"{tbxPath.Text}\" " +
                             $"-ss {tbxStart.Text} -to {tbxEnd.Text} -crf {tbxCRF.Text} " +
-                            $"-filter_complex \"{filterComplexMap}{nameOverlay}\" " +
+                            $"-filter_complex \"{filterComplexMap}{nameOverlay}{cropText}\" " +
                             $"{(addExtraParams.Checked ? extraParams : "")} \"{tbxOut.Text + (extraEffects.SelectedIndex == 2 ? "_tmp" : "")}.mp4\"";
 
             float es = 0, em = 0;
@@ -505,6 +518,12 @@ namespace ffright
             {
                 KillViewer();
             }
+        }
+
+        private void tbxCrop1_DoubleClick(object sender, EventArgs e)
+        {
+            // TODO: Preset list of resolutions
+            tbxCrop1.Text = "16";
         }
     }
 }
