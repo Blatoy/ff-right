@@ -46,6 +46,9 @@ namespace ffright
             keepOpen = new System.Windows.Forms.CheckBox();
             chkHideOverlay = new System.Windows.Forms.CheckBox();
             chkPreview = new System.Windows.Forms.CheckBox();
+            label3 = new System.Windows.Forms.Label();
+            tbxCrop1 = new System.Windows.Forms.TextBox();
+            tbxCrop2 = new System.Windows.Forms.TextBox();
             SuspendLayout();
             // 
             // tbxStart
@@ -93,7 +96,7 @@ namespace ffright
             tbxOut.Location = new System.Drawing.Point(105, 57);
             tbxOut.Name = "tbxOut";
             tbxOut.PlaceholderText = "Clip name";
-            tbxOut.Size = new System.Drawing.Size(184, 23);
+            tbxOut.Size = new System.Drawing.Size(108, 23);
             tbxOut.TabIndex = 0;
             tbxOut.TextChanged += UpdateCommandLineWithoutRestartingPlayer;
             tbxOut.Enter += tbxOut_Enter;
@@ -101,7 +104,7 @@ namespace ffright
             // 
             // btnConvert
             // 
-            btnConvert.Location = new System.Drawing.Point(1, 157);
+            btnConvert.Location = new System.Drawing.Point(1, 159);
             btnConvert.Name = "btnConvert";
             btnConvert.Size = new System.Drawing.Size(288, 23);
             btnConvert.TabIndex = 9;
@@ -143,7 +146,7 @@ namespace ffright
             // label2
             // 
             label2.AutoSize = true;
-            label2.Location = new System.Drawing.Point(223, 31);
+            label2.Location = new System.Drawing.Point(219, 31);
             label2.Name = "label2";
             label2.Size = new System.Drawing.Size(21, 15);
             label2.TabIndex = 11;
@@ -154,7 +157,7 @@ namespace ffright
             addExtraParams.AutoSize = true;
             addExtraParams.Checked = true;
             addExtraParams.CheckState = System.Windows.Forms.CheckState.Checked;
-            addExtraParams.Location = new System.Drawing.Point(195, 113);
+            addExtraParams.Location = new System.Drawing.Point(195, 115);
             addExtraParams.Name = "addExtraParams";
             addExtraParams.Size = new System.Drawing.Size(94, 19);
             addExtraParams.TabIndex = 6;
@@ -165,7 +168,7 @@ namespace ffright
             // deleteOriginal
             // 
             deleteOriginal.AutoSize = true;
-            deleteOriginal.Location = new System.Drawing.Point(108, 113);
+            deleteOriginal.Location = new System.Drawing.Point(105, 115);
             deleteOriginal.Name = "deleteOriginal";
             deleteOriginal.Size = new System.Drawing.Size(81, 19);
             deleteOriginal.TabIndex = 5;
@@ -186,7 +189,7 @@ namespace ffright
             // keepOpen
             // 
             keepOpen.AutoSize = true;
-            keepOpen.Location = new System.Drawing.Point(108, 132);
+            keepOpen.Location = new System.Drawing.Point(105, 134);
             keepOpen.Name = "keepOpen";
             keepOpen.Size = new System.Drawing.Size(82, 19);
             keepOpen.TabIndex = 13;
@@ -196,7 +199,7 @@ namespace ffright
             // chkHideOverlay
             // 
             chkHideOverlay.AutoSize = true;
-            chkHideOverlay.Location = new System.Drawing.Point(195, 132);
+            chkHideOverlay.Location = new System.Drawing.Point(195, 134);
             chkHideOverlay.Name = "chkHideOverlay";
             chkHideOverlay.Size = new System.Drawing.Size(86, 19);
             chkHideOverlay.TabIndex = 14;
@@ -217,6 +220,36 @@ namespace ffright
             chkPreview.UseVisualStyleBackColor = true;
             chkPreview.CheckedChanged += chkPreview_CheckedChanged;
             // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new System.Drawing.Point(251, 60);
+            label3.Name = "label3";
+            label3.Size = new System.Drawing.Size(10, 15);
+            label3.TabIndex = 18;
+            label3.Text = ":";
+            // 
+            // tbxCrop1
+            // 
+            tbxCrop1.Location = new System.Drawing.Point(221, 57);
+            tbxCrop1.Name = "tbxCrop1";
+            tbxCrop1.PlaceholderText = "Start";
+            tbxCrop1.Size = new System.Drawing.Size(24, 23);
+            tbxCrop1.TabIndex = 16;
+            tbxCrop1.Text = "21";
+            tbxCrop1.TextChanged += UpdateCommandLineWithoutRestartingPlayer;
+            tbxCrop1.DoubleClick += tbxCrop1_DoubleClick;
+            // 
+            // tbxCrop2
+            // 
+            tbxCrop2.Location = new System.Drawing.Point(265, 57);
+            tbxCrop2.Name = "tbxCrop2";
+            tbxCrop2.PlaceholderText = "End";
+            tbxCrop2.Size = new System.Drawing.Size(24, 23);
+            tbxCrop2.TabIndex = 17;
+            tbxCrop2.Text = "9";
+            tbxCrop2.TextChanged += UpdateCommandLineWithoutRestartingPlayer;
+            // 
             // FormConvertVideos
             // 
             AcceptButton = btnConvert;
@@ -225,6 +258,9 @@ namespace ffright
             AutoSize = true;
             AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             ClientSize = new System.Drawing.Size(626, 227);
+            Controls.Add(label3);
+            Controls.Add(tbxCrop2);
+            Controls.Add(tbxCrop1);
             Controls.Add(chkPreview);
             Controls.Add(chkHideOverlay);
             Controls.Add(keepOpen);
@@ -277,6 +313,9 @@ namespace ffright
         private System.Windows.Forms.CheckBox keepOpen;
         private System.Windows.Forms.CheckBox chkHideOverlay;
         private System.Windows.Forms.CheckBox chkPreview;
+        private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.TextBox tbxCrop1;
+        private System.Windows.Forms.TextBox tbxCrop2;
     }
 }
 
