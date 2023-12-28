@@ -342,7 +342,7 @@ namespace ffright
                 viewerProcess.StartInfo.WindowStyle = ProcessWindowStyle.Hidden;
                 viewerProcess.StartInfo.FileName = "ffplay.exe";
                 // -ss 00:14 -t 1
-                var height = Height * 2;
+                int height = (int)Math.Round(Height * 1.8);
                 var width = Math.Round(height * (16d / 9d));
                 var top = Top - height / 4;
 
