@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -75,7 +75,11 @@ namespace ffright
             cmd.Exited += (object sender, System.EventArgs e) =>
             {
                 StringCollection paths = new StringCollection();
-                paths.Add(Path.GetDirectoryName(tbxPath.Text) + "\\" + tbxOut.Text + ".mp4");
+                paths.Add(Path.GetDirectoryName(tbxPath.Text) + "\\" + GetFileName() + ".mp4");
+
+                File.SetLastWriteTime(Path.GetDirectoryName(tbxPath.Text) + "\\" + GetFileName() + ".mp4", clipDate);
+                File.SetCreationTime(Path.GetDirectoryName(tbxPath.Text) + "\\" + GetFileName() + ".mp4", clipDate);
+                File.SetLastAccessTime(Path.GetDirectoryName(tbxPath.Text) + "\\" + GetFileName() + ".mp4", clipDate);
 
                 Thread thread = new Thread(() => Clipboard.SetFileDropList(paths));
                 thread.SetApartmentState(ApartmentState.STA);
@@ -90,8 +94,8 @@ namespace ffright
                 {
                     try
                     {
-                        File.Move(tbxPath.Text, tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")"));
-                        tbxPath.Text = tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + tbxOut.Text + ")");
+                        File.Move(tbxPath.Text, tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + SanitizeFileName(tbxOut.Text) + ")"));
+                        tbxPath.Text = tbxPath.Text.Insert(tbxPath.Text.Length - 4, " (" + SanitizeFileName(tbxOut.Text) + ")");
                     }
                     catch (Exception exception)
                     {
@@ -192,6 +196,18 @@ namespace ffright
             tbxOut.Focus();
         }
 
+        private string SanitizeFileName(string fileName)
+        {
+            var invalids = System.IO.Path.GetInvalidFileNameChars();
+            return String.Join("_", fileName.Split(invalids, StringSplitOptions.RemoveEmptyEntries)).TrimEnd('.');
+        }
+
+        private string GetFileName()
+        {
+
+            return SanitizeFileName(fileCreationDate.ToString("yyyy-MM-dd") + " " + tbxOut.Text);
+        }
+
         private void OnPathChanged(object sender, EventArgs e)
         {
             UpdateCommandLine();
@@ -217,6 +233,8 @@ namespace ffright
         {
             UpdateCommandLine(false);
         }
+
+        DateTime clipDate;
 
         void UpdateCommandLine(bool restartPlayer = true)
         {
@@ -246,10 +264,11 @@ namespace ffright
                 string creationDate = "";
                 if (fileCreationDate != null)
                 {
+                    clipDate = fileCreationDate;
                     creationDate = fileCreationDate.ToString("dd.MM.yyyy HH\\\\:mm");
                 }
 
-                nameOverlay += $";drawtext=fontfile='{textFontPath}':text='{tbxOut.Text}':fontcolor=white:fontsize=64:box=1:boxcolor=black@0.7:boxborderw=15:x=(w-text_w)/2:y=200:enable='between(t,{frameIndex},{frameIndex})',drawtext=fontfile='{textFontPath}':text='{creationDate}':fontcolor=white:fontsize=54:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=(h - 300):enable='between(t,{frameIndex},{frameIndex})'";
+                nameOverlay += $";drawtext=fontfile='{textFontPath}':text='{tbxOut.Text}':fontcolor=white:fontsize=100:box=1:boxcolor=black@0.7:boxborderw=15:x=(w-text_w)/2:y=200:enable='between(t,{frameIndex},{frameIndex})',drawtext=fontfile='{textFontPath}':text='{creationDate}':fontcolor=white:fontsize=84:box=1:boxcolor=black@0.5:boxborderw=15:x=(w-text_w)/2:y=(h - 300):enable='between(t,{frameIndex},{frameIndex})'";
             }
 
             // TODO: Save in config
@@ -268,7 +287,7 @@ namespace ffright
             tbxCommand.Text = $"ffmpeg.exe -y -i \"{tbxPath.Text}\" " +
                             $"-ss {tbxStart.Text} -to {tbxEnd.Text} -crf {tbxCRF.Text} " +
                             $"-filter_complex \"{filterComplexMap}{nameOverlay}{cropText}\" " +
-                            $"{(addExtraParams.Checked ? extraParams : "")} \"{tbxOut.Text + (extraEffects.SelectedIndex == 2 ? "_tmp" : "")}.mp4\"";
+                            $"{(addExtraParams.Checked ? extraParams : "")} \"{GetFileName() + (extraEffects.SelectedIndex == 2 ? "_tmp" : "")}.mp4\"";
 
             float es = 0, em = 0;
             try
@@ -294,9 +313,9 @@ namespace ffright
                     // to be continued
                     string zoom = "1.05";
 
-                    tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}.mp4\" -vf tpad=stop_mode=clone:stop_duration=3 \"{tbxOut.Text}_tmp.mp4\"";
-                    tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}_tmp.mp4\"  -i \"{toBeContinuedImage}\" -filter_complex \"[0:v] zoompan=z='if(between(in_time,{endSeconds},{endSeconds + 4}),{zoom},1)':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30, hue=s=0:enable='between(t,{endSeconds},{endSeconds + 4})'[b]; [b][1:v] overlay=0:0:enable='between(t,{endSeconds},{endSeconds + 4})\" -itsoffset 00:{durationM}:{durationS} -i \"{toBeContinuedAudio}\" -map 0 -map 1:0 -filter_complex \"amix=inputs=2\" -async 1 \"{tbxOut.Text}.mp4\"";
-                    tbxCommand.Text += $" & del \"{tbxOut.Text}_tmp.mp4\"";
+                    tbxCommand.Text += $" & ffmpeg.exe -y -i \"{GetFileName()}.mp4\" -vf tpad=stop_mode=clone:stop_duration=3 \"{GetFileName()}_tmp.mp4\"";
+                    tbxCommand.Text += $" & ffmpeg.exe -y -i \"{GetFileName()}_tmp.mp4\"  -i \"{toBeContinuedImage}\" -filter_complex \"[0:v] zoompan=z='if(between(in_time,{endSeconds},{endSeconds + 4}),{zoom},1)':x='iw/2-iw/zoom/2':y='ih/2-ih/zoom/2':d=1:s=1920x1080:fps=30, hue=s=0:enable='between(t,{endSeconds},{endSeconds + 4})'[b]; [b][1:v] overlay=0:0:enable='between(t,{endSeconds},{endSeconds + 4})\" -itsoffset 00:{durationM}:{durationS} -i \"{toBeContinuedAudio}\" -map 0 -map 1:0 -filter_complex \"amix=inputs=2\" -async 1 \"{GetFileName()}.mp4\"";
+                    tbxCommand.Text += $" & del \"{GetFileName()}_tmp.mp4\"";
                     break;
                 case 2:
                     {
@@ -323,8 +342,8 @@ namespace ffright
 
                         var mathThing = $"100 + max(0\\, 200 - 900 * sqrt((t - {startSeconds}) / {effectDuration}))";
 
-                        tbxCommand.Text += $" & ffmpeg.exe -y -i \"{tbxOut.Text}_tmp.mp4\" -itsoffset {startSeconds} -async 1 -i \"{memeFolder}roll-{rollType}.wav\" -i \"{memeFolder}roll-{rollType}.png\" -filter_complex \"[0:a:0][1:a:0]amix=2;drawtext=fontfile='{memeFolder.Replace("\\", "\\\\").Replace(":", "\\:")}12-post-antiqua-roman-05554.ttf':text='{textType} {diceUI.diceMessage.Text}':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.95:boxborderw=12:x=50 + {mathThing}:y=70+12:enable='between(t,{startSeconds},{startSeconds + effectDuration})'[out];[out][2:v]overlay=enable='between=(t,{startSeconds},{startSeconds + effectDuration})':x={mathThing}:y=70\" \"{tbxOut.Text}.mp4\"";
-                        tbxCommand.Text += $" & del \"{tbxOut.Text}_tmp.mp4\"";
+                        tbxCommand.Text += $" & ffmpeg.exe -y -i \"{GetFileName()}_tmp.mp4\" -itsoffset {startSeconds} -async 1 -i \"{memeFolder}roll-{rollType}.wav\" -i \"{memeFolder}roll-{rollType}.png\" -filter_complex \"[0:a:0][1:a:0]amix=2;drawtext=fontfile='{memeFolder.Replace("\\", "\\\\").Replace(":", "\\:")}12-post-antiqua-roman-05554.ttf':text='{textType} {diceUI.diceMessage.Text}':fontcolor=white:fontsize=18:box=1:boxcolor=black@0.95:boxborderw=12:x=50 + {mathThing}:y=70+12:enable='between(t,{startSeconds},{startSeconds + effectDuration})'[out];[out][2:v]overlay=enable='between=(t,{startSeconds},{startSeconds + effectDuration})':x={mathThing}:y=70\" \"{GetFileName()}.mp4\"";
+                        tbxCommand.Text += $" & del \"{GetFileName()}_tmp.mp4\"";
                     }
 
                     break;
@@ -346,7 +365,7 @@ namespace ffright
                 var width = Math.Round(height * (16d / 9d));
                 var top = Top - height / 4;
 
-                viewerProcess.StartInfo.Arguments = $"-vf \"drawtext=text='%{{pts\\:hms}}':box=1:x=(w-text_w)/2:y=25:fontsize=80\" -alwaysontop -top {top} -left {Right} -x {width} -y {height} -noborder -volume 15 -loop 0 -ss {tbxStart.Text} -t {durationS + 1 + durationM * 60} -i \"{tbxPath.Text}\"";
+                viewerProcess.StartInfo.Arguments = $"-vf \"drawtext=text='%{{pts\\:hms}}':box=1:x=(w-text_w)/2:y=25:fontsize=100\" -alwaysontop -top {top} -left {Right} -x {width} -y {height} -noborder -volume 15 -loop 0 -ss {tbxStart.Text} -t {durationS + 1 + durationM * 60} -i \"{tbxPath.Text}\"";
                 Debug.WriteLine(viewerProcess.StartInfo.Arguments);
 
                 viewerProcess.Start();
@@ -523,7 +542,7 @@ namespace ffright
         private void tbxCrop1_DoubleClick(object sender, EventArgs e)
         {
             // TODO: Preset list of resolutions
-            tbxCrop1.Text = "16";
+            tbxCrop1.Text = "21";
         }
     }
 }
