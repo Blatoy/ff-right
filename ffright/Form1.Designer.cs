@@ -236,7 +236,7 @@ namespace ffright
             tbxCrop1.PlaceholderText = "Start";
             tbxCrop1.Size = new System.Drawing.Size(24, 23);
             tbxCrop1.TabIndex = 16;
-            tbxCrop1.Text = "21";
+            tbxCrop1.Text = "16";
             tbxCrop1.TextChanged += UpdateCommandLineWithoutRestartingPlayer;
             tbxCrop1.DoubleClick += tbxCrop1_DoubleClick;
             // 

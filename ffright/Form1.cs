@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -283,6 +283,7 @@ namespace ffright
             double screenWidth = SCREEN_HEIGHT * ratio;
 
             string cropText = $",crop={screenWidth}:{SCREEN_HEIGHT}:{(int)((RECORDING_WIDTH - screenWidth) / 2)}:0";
+            if (tbxCrop1.Text == "16" && tbxCrop2.Text == "9") cropText = "";
 
             tbxCommand.Text = $"ffmpeg.exe -y -i \"{tbxPath.Text}\" " +
                             $"-ss {tbxStart.Text} -to {tbxEnd.Text} -crf {tbxCRF.Text} " +
